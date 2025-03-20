@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Game</title>
+    <style>
+        :root {
+            --primary-color: #5D5CDE;
+            --player-color: #5D5CDE;
+            --computer-color: #FF4444;
+            --ball1-color: #00FFFF;
+            --ball2-color: #FF8800;
+            --background-color: #000;
+            --text-color: #fff;
+            --button-bg: #4CAF50;
+            --button-hover: #45a049;
+            --button-active: #388e3c;
+            --powerup-color: #FFFF00;
+        }
+        
+        .dark-mode {
+            --background-color: #000;
+            --text-color: #fff;
+        }
+        
+        .light-mode {
+            --background-color: #f0f0f0;
+            --text-color: #333;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--background-color);
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            overflow: hidden;
+            color: var(--text-color);
+            transition: background-color 0.3s;
+        }
+        
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            padding: 10px;
+        }
+        
+        canvas {
+            border: 2px solid var(--primary-color);
+            background-color: var(--background-color);
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+        
+        .game-info {
+            color: var(--text-color);
+            margin-top: 10px;
+            font-size: 24px;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        
+        #gameMessage {
+            position: absolute;
+            color: #ffffff; /* Fixed white text color for better visibility */
+            font-size: 36px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 100; /* Increased z-index to ensure it's on top */
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+            max-width: 90%;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8); /* Added text shadow for better readability */
+            font-weight: bold; /* Make text bold for better visibility */
+            border: 2px solid #5D5CDE; /* Add border for better visibility */
+        }
+        
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .game-button {
+            padding: 12px 24px;
+            font-size: 16px;
+            color: #fff;
+            background-color: var(--button-bg);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .game-button:hover {
+            background-color: var(--button-hover);
+            transform: scale(1.05);
+        }
+        
+        .game-button:active {
+            background-color: var(--button-active);
+            transform: scale(0.95);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .settings-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        .setting {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        
+        .difficulty-selector, .mode-selector, .lang-selector {
+            background-color: var(--button-bg);
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .powerup {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: var(--powerup-color);
+            animation: pulse 1s infinite alternate;
+            z-index: 5;
+        }
+        
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.1); opacity: 1; }
+        }
+        
+        #countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            color: var(--text-color);
+            z-index: 100;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .game-info {
+                font-size: 18px;
+            }
+            
+            .game-button {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+            
+            #gameMessage {
+                font-size: 24px;
+                padding: 15px;
+            }
+            
+            .setting {
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-info {
+                font-size: 14px;
+            }
+            
+            .button-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .settings-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .game-button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+        
+        .touch-controls {
+            display: none;
+            width: 100%;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        
+        .touch-button {
+            width: 45%;
+            padding: 20px;
+            font-size: 24px;
+            background-color: rgba(93, 92, 222, 0.3);
+            border: 2px solid var(--primary-color);
+            color: var(--text-color);
+            border-radius: 10px;
+            touch-action: manipulation;
+        }
+        
+        @media (max-width: 1000px) {
+            .touch-controls {
+                display: flex;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="game-container">
+            <canvas id="pongCanvas" width="1000" height="500"></canvas>
+            <div class="game-info">
+                <span id="playerLabel">Player</span>: <span id="playerScore">0</span> | <span id="computerLabel">Computer</span>: <span id="computerScore">0</span>
+            </div>
+            <div class="button-container">
+                <button id="startButton" class="game-button">Start</button>
+                <button id="pauseButton" class="game-button">Pause</button>
+                <button id="resetButton" class="game-button">Reset</button>
+            </div>
+            <div class="settings-container">
+                <div class="setting">
+                    <span id="difficultyLabel">Difficulty:</span>
+                    <select id="difficultySelect" class="difficulty-selector">
+                        <option value="easy">Easy</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="setting">
+                    <span id="modeLabel">Mode:</span>
+                    <select id="modeSelect" class="mode-selector">
+                        <option value="classic">Classic</option>
+                        <option value="multi" selected>Multi-Ball</option>
+                    </select>
+                </div>
+                <div class="setting">
+                    <span id="soundLabel">Sound:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="soundToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting">
+                    <span id="themeLabel">Dark:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="themeToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting">
+                    <span>Language:</span>
+                    <select id="langSelect" class="lang-selector">
+                        <option value="de">Deutsch</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+            <div class="touch-controls">
+                <button id="upButton" class="touch-button">↑</button>
+                <button id="downButton" class="touch-button">↓</button>
+            </div>
+            <div id="gameMessage"></div>
+            <div id="countdown"></div>
+        </div>
+    </div>
+    <script>
+        // Game elements
+        const canvas = document.getElementById('pongCanvas');
+        const ctx = canvas.getContext('2d');
+        const playerScoreDisplay = document.getElementById('playerScore');
+        const computerScoreDisplay = document.getElementById('computerScore');
+        const startButton = document.getElementById('startButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const resetButton = document.getElementById('resetButton');
+        const gameMessage = document.getElementById('gameMessage');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const modeSelect = document.getElementById('modeSelect');
+        const soundToggle = document.getElementById('soundToggle');
+        const themeToggle = document.getElementById('themeToggle');
+        const langSelect = document.getElementById('langSelect');
+        const countdown = document.getElementById('countdown');
+        const upButton = document.getElementById('upButton');
+        const downButton = document.getElementById('downButton');
+        
+        // Language settings
+        const translations = {
+            'de': {
+                'startButton': 'Start',
+                'pauseButton': 'Pause',
+                'resetButton': 'Zurücksetzen',
+                'playerLabel': 'Spieler',
+                'computerLabel': 'Computer',
+                'difficultyLabel': 'Schwierigkeit:',
+                'easy': 'Einfach',
+                'normal': 'Normal',
+                'hard': 'Schwer',
+                'modeLabel': 'Modus:',
+                'classic': 'Klassisch',
+                'multi': 'Multi-Ball',
+                'soundLabel': 'Ton:',
+                'themeLabel': 'Dunkel:',
+                'startMessage': 'Drücke Start, um zu beginnen!',
+                'pauseMessage': 'Spiel pausiert. Drücke Start, um fortzufahren.',
+                'playerWins': 'Spieler gewinnt! Ergebnis: {0} - {1}.',
+                'computerWins': 'Computer gewinnt! Ergebnis: {0} - {1}.',
+                'newGame': 'Neues Spiel'
+            },
+            'en': {
+                'startButton': 'Start',
+                'pauseButton': 'Pause',
+                'resetButton': 'Reset',
+                'playerLabel': 'Player',
+                'computerLabel': 'Computer',
+                'difficultyLabel': 'Difficulty:',
+                'easy': 'Easy',
+                'normal': 'Normal',
+                'hard': 'Hard',
+                'modeLabel': 'Mode:',
+                'classic': 'Classic',
+                'multi': 'Multi-Ball',
+                'soundLabel': 'Sound:',
+                'themeLabel': 'Dark:',
+                'startMessage': 'Press Start to begin!',
+                'pauseMessage': 'Game paused. Press Start to continue.',
+                'playerWins': 'Player wins! Score: {0} - {1}.',
+                'computerWins': 'Computer wins! Score: {0} - {1}.',
+                'newGame': 'New Game'
+            }
+        };
+        
+        let currentLang = 'de';
+        
+        // Sound effects
+        const sounds = {
+            paddle: new Audio('data:audio/wav;base64,UklGRnQHAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVAHAACAgICAgICAgICAgICAgICAgICAgICBf3x5dnNwbmtpZ2VjYmBfXl1dXV5fYGNmam1xdXp+goaLj5OXm5+ipqmsr7GztLW1tbW0s7Gwrq2rqaelpKKhn5+enp6eoKKkpqmrrrCztbm8wMPGyczP0tTX2tzd3t/g4ODf3t3c2tnX1dPS0M/NzMrJyMfHx8fHyMnLzM7R09XY2tze4OLk5ufo6urr6+vr6uno5+bl5OPi4eDf397d3dzc3Nzc3d7f4OHj5OXn6Onq6+zt7e7u7u7t7ezt7Ovr6urp6ejn5+fm5ubn5+jp6uvt7vDx8/T19vf4+Pn5+fn5+fj39/b19PPy8fDv7u3s6+vq6urq6+vs7e7v8PHy8/X3+Pn6+/z9/f7+/v79/fz8+/r5+Pf29fTz8vHw7+7t7ezs6+vr6+vs7O3u7/Dx8vP09fb3+Pn6+vv7+/v7+/v6+vn5+Pf29fX08/Py8vHx8PDw8PDw8fHy8vP09PX29/j5+fr7+/z8/f39/f39/Pz8+/v6+vn5+Pj39/b29vb29vb29/f4+Pn5+vr7/Pz9/f7+/v////7+/v39/Pz7+/r6+fn4+Pj39/f39/f3+Pj4+fn6+vv7/Pz9/f3+/v///////v7+/f38/Pz7+/r6+vn5+fn5+fn5+fn5+fr6+/v8/P39/f7+//////////////////////7+/f39/Pz8+/v7+vr6+vr6+vr6+/v7/Pz8/f3+/v7/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////UklGRnQHAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVAHAACBgYGBgYGBgYGBgYGBgYGBgICAgH99eXdzb21qaGVjYmBfXl1dXV5fYGNmam1xdXp+goaLj5OXm5+ipqmsr7GztLW1tbW0s7Gwrq2rqaelpKKhn5+enp6eoKKkpqmrrrCztbi8v8PGyMzP0tTX2tzd3t/g4ODf3t3c2tnX1dPS0M/NzMrJyMfHx8fHyMnLzM7R09XY2tze4OLk5efo6err6+vr6uno5+bl5OPi4eDf397d3dzc3Nzc3d7f4OHj5OXn6Onq6+zt7e7u7u7t7Ozs6+vq6uno5+fm5uXm5ubn5+jp6uvt7vDx8/T19vf4+Pn5+fn5+fj39/b19PPy8fDv7u3s6+rq6urq6+zs7e7v8PHy8/X29/j5+vv8/f3+/v7+/f38/Pv6+fj39vX08/Ly8fDv7u3s7Ozr6+vs7O3u7/Dx8vP09fb3+Pn6+vv7+/v7+/v6+vn5+Pf29fTz8/Ly8fHx8PDw8PDw8fHy8vP09fb29/j5+fr7+/z8/f39/f39/Pz8+/v6+vn5+Pj39/f29vb29vb29/f4+Pn5+vr7/Pz9/f7+/v////////////7+/f38/Pv7+vr5+fj49/f39/f3+Pj4+fn6+vv7/Pz9/f3+/v///////////////////////v7+/f38/Pz7+/r6+vn5+fn5+fn5+fn5+fr6+/v8/P39/f7+/v///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////1JJRkZ0BwAAV0FWRWZtMTAQAAAAAQABAESsAACIWAEAAgAQAGRhdGFQBwAAgYGBgYGBgYGBgYGBgYGBgYCAgIB/fXl3c29tamlmZGNgX15dXV1eX2BiZWlscHR5fYGFio6SlpqeoaSnqq2xs7S1tbW1tLOysa+urKqopqWjoqCgn5+fn6CipKaoqq2vsbS3u77CxcfKzdDT1dja3N7f4ODg4N/e3dzb2djW1dPR0M/NzMrJyMjIyMjJysvN0NPV19na3N7g4uTl5+jq6uvr6+vr6ejo5uXk4+Lh4N/f3t3d3Nzc3Nzd3t/g4ePk5ufo6err7O3t7u7u7u3t7Ozr6+rq6ejn5+bm5ebm5+fo6enr7O7v8PHz9PX29/j4+fn5+fn5+Pf39vX08/Lx8O/u7ezr6urq6urs7O3u7/Dx8vP19vf4+fr7/P39/v7+/v39/Pz7+vn49/b19PPy8vHw7+7t7Ozr6+vs7O3u7/Dx8vPz9fb3+Pn6+vv7+/v7+/v6+vn5+Pf29fTz8/Ly8fHx8PDw8PDw8fHy8vPz9fb29/j5+fr7+/z8/f39/f39/Pz8+/v6+vn5+Pj39/f29vb29vb29/f4+Pn5+vr7/Pz9/f7+/v////////////7+/f38/Pv7+vr5+fj4+Pf39/f3+Pj4+fn6+vv7/Pz9/f3+/v///////////////////////v7+/f38/Pz7+/r6+vn5+fn5+fn5+fn5+fr6+/v8/P39/f7+/v//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////'),
+            wall: new Audio('data:audio/wav;base64,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'),
+            score: new Audio('data:audio/wav;base64,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')
+        };
+        
+        // Ball properties
+        let balls = [
+            {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                radius: 12,
+                speedX: 6,
+                speedY: 6,
+                color: getComputedStyle(document.documentElement).getPropertyValue('--ball1-color'),
+                trail: [],
+                trailLength: 10,
+                fading: false,
+            },
+            {
+                x: canvas.width / 3,
+                y: canvas.height / 3,
+                radius: 10,
+                speedX: -5,
+                speedY: 5,
+                color: getComputedStyle(document.documentElement).getPropertyValue('--ball2-color'),
+                trail: [],
+                trailLength: 8,
+                fading: false,
+            }
+        ];
+        
+        // Player properties
+        const player = {
+            x: 0,
+            y: canvas.height / 2 - 60,
+            width: 12,
+            height: 120,
+            score: 0,
+            color: getComputedStyle(document.documentElement).getPropertyValue('--player-color'),
+            speed: 8,
+            boosting: false,
+            boostDuration: 5000,
+            boostTimeout: null,
+        };
+        
+        // Computer properties
+        const computer = {
+            x: canvas.width - 12,
+            y: canvas.height / 2 - 60,
+            width: 12,
+            height: 120,
+            score: 0,
+            color: getComputedStyle(document.documentElement).getPropertyValue('--computer-color'),
+            speed: 5,
+            difficulty: 0.1,
+        };
+        
+        // Power-up properties
+        let powerUps = [];
+        
+        // Game state
+        let gameRunning = false;
+        let gamePaused = false;
+        let animationId;
+        let lastTime = 0;
+        let deltaTime = 0;
+        let initialBallSpeedX = balls[0].speedX;
+        let initialBallSpeedY = balls[0].speedY;
+        let touchControlActive = false;
+        let touchY = 0;
+        let touchInterval = null;
+        let winScore = 10;
+        
+        // Apply initial theme based on user preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark-mode');
+            themeToggle.checked = true;
+        } else {
+            document.documentElement.classList.add('light-mode');
+            themeToggle.checked = false;
+        }
+        
+        // Event Listeners for buttons
+        startButton.addEventListener('click', startGame);
+        pauseButton.addEventListener('click', togglePause);
+        resetButton.addEventListener('click', resetGame);
+        
+        // Mouse control
+        canvas.addEventListener('mousemove', mouseMoveHandler);
+        
+        // Touch controls
+        upButton.addEventListener('touchstart', () => {
+            touchControlActive = true;
+            movePlayerUp();
+            touchInterval = setInterval(movePlayerUp, 16);
+        });
+        
+        upButton.addEventListener('touchend', () => {
+            touchControlActive = false;
+            clearInterval(touchInterval);
+        });
+        
+        downButton.addEventListener('touchstart', () => {
+            touchControlActive = true;
+            movePlayerDown();
+            touchInterval = setInterval(movePlayerDown, 16);
+        });
+        
+        downButton.addEventListener('touchend', () => {
+            touchControlActive = false;
+            clearInterval(touchInterval);
+        });
+        
+        // Keyboard controls
+        window.addEventListener('keydown', keyDownHandler);
+        window.addEventListener('keyup', keyUpHandler);
+        
+        let keysPressed = {
+            ArrowUp: false,
+            ArrowDown: false,
+            w: false,
+            s: false
+        };
+        
+        function keyDownHandler(e) {
+            if (e.key === 'ArrowUp' || e.key === 'w') {
+                keysPressed[e.key] = true;
+            } else if (e.key === 'ArrowDown' || e.key === 's') {
+                keysPressed[e.key] = true;
+            } else if (e.key === ' ' && !gameRunning) {
+                startGame();
+            } else if (e.key === 'p' && gameRunning) {
+                togglePause();
+            } else if (e.key === 'r') {
+                resetGame();
+            }
+        }
+        
+        function keyUpHandler(e) {
+            if (e.key === 'ArrowUp' || e.key === 'w') {
+                keysPressed[e.key] = false;
+            } else if (e.key === 'ArrowDown' || e.key === 's') {
+                keysPressed[e.key] = false;
+            }
+        }
+        
+        function movePlayerUp() {
+            player.y = Math.max(0, player.y - player.speed * 2);
+        }
+        
+        function movePlayerDown() {
+            player.y = Math.min(canvas.height - player.height, player.y + player.speed * 2);
+        }
+        
+        function processKeyboardInput() {
+            if ((keysPressed.ArrowUp || keysPressed.w) && !touchControlActive) {
+                player.y = Math.max(0, player.y - player.speed);
+            }
+            if ((keysPressed.ArrowDown || keysPressed.s) && !touchControlActive) {
+                player.y = Math.min(canvas.height - player.height, player.y + player.speed);
+            }
+        }
+        
+        function mouseMoveHandler(e) {
+            if (gameRunning && !gamePaused && !touchControlActive) {
+                const rect = canvas.getBoundingClientRect();
+                const relativeY = e.clientY - rect.top;
+                const canvasScaleFactor = canvas.height / rect.height;
+                const maxY = canvas.height - player.height;
+                player.y = Math.max(0, Math.min(relativeY * canvasScaleFactor - player.height / 2, maxY));
+            }
+        }
+        
+        // Settings event listeners
+        modeSelect.addEventListener('change', () => {
+            if (modeSelect.value === 'classic') {
+                balls.splice(1); // Remove extra balls
+            } else if (modeSelect.value === 'multi' && balls.length === 1) {
+                balls.push({
+                    x: canvas.width / 3,
+                    y: canvas.height / 3,
+                    radius: 10,
+                    speedX: -5,
+                    speedY: 5,
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--ball2-color'),
+                    trail: [],
+                    trailLength: 8,
+                    fading: false,
+                });
+            }
+        });
+        
+        difficultySelect.addEventListener('change', () => {
+            if (difficultySelect.value === 'easy') {
+                computer.speed = 4;
+                winScore = 5;
+            } else if (difficultySelect.value === 'normal') {
+                computer.speed = 5;
+                winScore = 10;
+            } else if (difficultySelect.value === 'hard') {
+                computer.speed = 6;
+                winScore = 15;
+            }
+        });
+        
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                document.documentElement.classList.remove('light-mode');
+                document.documentElement.classList.add('dark-mode');
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+                document.documentElement.classList.add('light-mode');
+            }
+        });
+        
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.remove('light-mode');
+                document.documentElement.classList.add('dark-mode');
+                themeToggle.checked = true;
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+                document.documentElement.classList.add('light-mode');
+                themeToggle.checked = false;
+            }
+        });
+        
+        langSelect.addEventListener('change', () => {
+            currentLang = langSelect.value;
+            updateLanguage();
+        });
+        
+        function updateLanguage() {
+            startButton.textContent = translations[currentLang].startButton;
+            pauseButton.textContent = translations[currentLang].pauseButton;
+            resetButton.textContent = translations[currentLang].resetButton;
+            document.getElementById('playerLabel').textContent = translations[currentLang].playerLabel;
+            document.getElementById('computerLabel').textContent = translations[currentLang].computerLabel;
+            document.getElementById('difficultyLabel').textContent = translations[currentLang].difficultyLabel;
+            document.getElementById('modeLabel').textContent = translations[currentLang].modeLabel;
+            document.getElementById('soundLabel').textContent = translations[currentLang].soundLabel;
+            document.getElementById('themeLabel').textContent = translations[currentLang].themeLabel;
+            
+            // Update options text
+            const difficultyOptions = difficultySelect.options;
+            difficultyOptions[0].textContent = translations[currentLang].easy;
+            difficultyOptions[1].textContent = translations[currentLang].normal;
+            difficultyOptions[2].textContent = translations[currentLang].hard;
+            
+            const modeOptions = modeSelect.options;
+            modeOptions[0].textContent = translations[currentLang].classic;
+            modeOptions[1].textContent = translations[currentLang].multi;
+            
+            // Update game message if it's visible
+            if (gameMessage.style.display === 'block') {
+                if (!gameRunning && player.score === 0 && computer.score === 0) {
+                    gameMessage.textContent = translations[currentLang].startMessage;
+                } else if (gamePaused) {
+                    gameMessage.textContent = translations[currentLang].pauseMessage;
+                } else if (player.score >= winScore || computer.score >= winScore) {
+                    let winnerMsg = player.score >= winScore ? 
+                        translations[currentLang].playerWins : 
+                        translations[currentLang].computerWins;
+                    winnerMsg = winnerMsg.replace('{0}', player.score).replace('{1}', computer.score);
+                    gameMessage.textContent = winnerMsg;
+                    startButton.textContent = translations[currentLang].newGame;
+                }
+            }
+        }
+        
+        // Create power-up
+        function createPowerUp() {
+            if (Math.random() < 0.005 && powerUps.length < 1 && gameRunning && !gamePaused) {
+                let x = Math.random() * (canvas.width - 100) + 50;
+                let y = Math.random() * (canvas.height - 100) + 50;
+                let type = Math.random() < 0.5 ? 'speed' : 'size';
+                
+                powerUps.push({
+                    x: x,
+                    y: y,
+                    radius: 15,
+                    type: type,
+                    color: type === 'speed' ? '#FFFF00' : '#00FF00',
+                    duration: 5000,
+                    active: false
+                });
+            }
+        }
+        
+        // Check power-up collision
+        function checkPowerUpCollision() {
+            for (let i = 0; i < balls.length; i++) {
+                const ball = balls[i];
+                for (let j = 0; j < powerUps.length; j++) {
+                    const powerUp = powerUps[j];
+                    const dx = ball.x - powerUp.x;
+                    const dy = ball.y - powerUp.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < ball.radius + powerUp.radius) {
+                        if (ball.speedX > 0) {
+                            // Ball moving towards computer, power up for player
+                            activatePowerUp(powerUp, 'player');
+                        } else {
+                            // Ball moving towards player, power up for computer
+                            activatePowerUp(powerUp, 'computer');
+                        }
+                        powerUps.splice(j, 1);
+                        if (soundToggle.checked) {
+                            sounds.paddle.play();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Activate power-up
+        function activatePowerUp(powerUp, target) {
+            if (powerUp.type === 'speed') {
+                if (target === 'player') {
+                    player.speed *= 1.5;
+                    setTimeout(() => {
+                        player.speed /= 1.5;
+                    }, powerUp.duration);
+                } else {
+                    computer.speed *= 1.5;
+                    setTimeout(() => {
+                        computer.speed /= 1.5;
+                    }, powerUp.duration);
+                }
+            } else if (powerUp.type === 'size') {
+                if (target === 'player') {
+                    player.height *= 1.5;
+                    setTimeout(() => {
+                        player.height /= 1.5;
+                    }, powerUp.duration);
+                } else {
+                    computer.height *= 1.5;
+                    setTimeout(() => {
+                        computer.height /= 1.5;
+                    }, powerUp.duration);
+                }
+            }
+        }
+        
+        // Move balls
+        function moveBalls() {
+            balls.forEach(ball => {
+                ball.x += ball.speedX;
+                ball.y += ball.speedY;
+                
+                // Collision with top/bottom walls
+                if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+                    ball.speedY = -ball.speedY;
+                    if (soundToggle.checked) {
+                        sounds.wall.play();
+                    }
+                }
+                
+                // Collision with player
+                if (ball.x - ball.radius < player.x + player.width && 
+                    ball.y > player.y && 
+                    ball.y < player.y + player.height && 
+                    ball.speedX < 0) {
+                    
+                    ball.speedX = -ball.speedX * 1.03;
+                    
+                    // Calculate angle based on where the ball hits the paddle
+                    const hitPosition = (ball.y - player.y) / player.height;
+                    ball.speedY = (hitPosition - 0.5) * 10;
+                    
+                    if (soundToggle.checked) {
+                        sounds.paddle.play();
+                    }
+                    
+                    ball.fading = true;
+                    player.boosting = true;
+                    
+                    if (player.boostTimeout) {
+                        clearTimeout(player.boostTimeout);
+                    }
+                    
+                    player.boostTimeout = setTimeout(() => {
+                        player.boosting = false;
+                        player.speed = 8;
+                    }, player.boostDuration);
+                    
+                    player.speed = 12;
+                }
+                
+                // Collision with computer
+                if (ball.x + ball.radius > computer.x && 
+                    ball.y > computer.y && 
+                    ball.y < computer.y + computer.height && 
+                    ball.speedX > 0) {
+                    
+                    ball.speedX = -ball.speedX * 1.03;
+                    
+                    // Calculate angle based on where the ball hits the paddle
+                    const hitPosition = (ball.y - computer.y) / computer.height;
+                    ball.speedY = (hitPosition - 0.5) * 10;
+                    
+                    if (soundToggle.checked) {
+                        sounds.paddle.play();
+                    }
+                    
+                    ball.fading = true;
+                }
+                
+                // Point for computer
+                if (ball.x - ball.radius < 0) {
+                    computer.score++;
+                    computerScoreDisplay.textContent = computer.score;
+                    resetBall(ball);
+                    
+                    if (soundToggle.checked) {
+                        sounds.score.play();
+                    }
+                    
+                    if (computer.score >= winScore) {
+                        gameOver();
+                    }
+                }
+                
+                // Point for player
+                if (ball.x + ball.radius > canvas.width) {
+                    player.score++;
+                    playerScoreDisplay.textContent = player.score;
+                    resetBall(ball);
+                    
+                    if (soundToggle.checked) {
+                        sounds.score.play();
+                    }
+                    
+                    if (player.score >= winScore) {
+                        gameOver();
+                    }
+                }
+            });
+        }
+        
+        // Move computer
+        function moveComputer() {
+            const centerOfComputer = computer.y + computer.height / 2;
+            let targetY = balls.reduce((closestY, ball) => {
+                // Only track balls moving towards the computer
+                if (ball.speedX > 0) {
+                    const distanceToBall = Math.abs(ball.y - centerOfComputer);
+                    const currentClosestDistance = Math.abs(closestY - centerOfComputer);
+                    return distanceToBall < currentClosestDistance ? ball.y : closestY;
+                }
+                return closestY;
+            }, canvas.height / 2);
+            
+            // Add some "AI difficulty" - how perfectly does the computer track
+            const difficultyFactor = difficultySelect.value === 'easy' ? 0.7 : 
+                                   difficultySelect.value === 'normal' ? 0.85 : 0.95;
+            
+            // Move towards target with some imprecision
+            if (centerOfComputer < targetY - 10) {
+                computer.y += Math.min(computer.speed, (targetY - centerOfComputer) * difficultyFactor);
+            } else if (centerOfComputer > targetY + 10) {
+                computer.y -= Math.min(computer.speed, (centerOfComputer - targetY) * difficultyFactor);
+            }
+            
+            computer.y = Math.max(0, Math.min(canvas.height - computer.height, computer.y));
+            
+            // Computer gets slightly better over time
+            if (difficultySelect.value !== 'easy') {
+                computer.speed += 0.0003;
+            }
+        }
+        
+        // Reset ball
+        function resetBall(ball) {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speedX = (ball.speedX > 0) ? -initialBallSpeedX : initialBallSpeedX;
+            ball.speedY = Math.random() * 6 - 3;
+            ball.trail = [];
+            ball.fading = false;
+        }
+        
+        // Draw everything
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Middle line
+            ctx.beginPath();
+            ctx.setLineDash([5, 15]);
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw power-ups
+            powerUps.forEach(powerUp => {
+                ctx.beginPath();
+                ctx.arc(powerUp.x, powerUp.y, powerUp.radius, 0, Math.PI * 2);
+                ctx.fillStyle = powerUp.color;
+                ctx.shadowColor = powerUp.color;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.closePath();
+            });
+            
+            // Draw balls
+            balls.forEach(ball => {
+                ctx.shadowColor = ball.color;
+                ctx.shadowBlur = 12;
+                
+                if (ball.fading) {
+                    ctx.globalAlpha = 0.5;
+                }
+                
+                // Draw ball trail
+                for (let i = 0; i < ball.trail.length; i++) {
+                    const point = ball.trail[i];
+                    const opacity = 0.8 * (1 - i / ball.trailLength);
+                    const size = ball.radius * (0.5 + i / ball.trailLength);
+                    
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                    ctx.fillStyle = ball.color;
+                    ctx.globalAlpha = opacity;
+                    ctx.fill();
+                    ctx.closePath();
+                }
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+                
+                // Draw actual ball
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+                ctx.fillStyle = ball.color;
+                ctx.fill();
+                ctx.closePath();
+            });
+            
+            // Draw player
+            ctx.fillStyle = player.boosting ? '#FFFF00' : player.color;
+            ctx.shadowColor = player.boosting ? '#FFFF00' : player.color;
+            ctx.shadowBlur = player.boosting ? 10 : 5;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.shadowBlur = 0;
+            
+            // Draw computer
+            ctx.fillStyle = computer.color;
+            ctx.shadowColor = computer.color;
+            ctx.shadowBlur = 5;
+            ctx.fillRect(computer.x, computer.y, computer.width, computer.height);
+            ctx.shadowBlur = 0;
+        }
+        
+        // Update game
+        function update() {
+            if (gameRunning && !gamePaused) {
+                deltaTime = (Date.now() - lastTime) / 16.66;
+                lastTime = Date.now();
+                
+                processKeyboardInput();
+                moveBalls();
+                moveComputer();
+                createPowerUp();
+                checkPowerUpCollision();
+                draw();
+                
+                balls.forEach(ball => {
+                    ball.trail.push({ x: ball.x, y: ball.y });
+                    if (ball.trail.length > ball.trailLength) {
+                        ball.trail.shift();
+                    }
+                });
+                
+                animationId = requestAnimationFrame(update);
+            }
+        }
+        
+        // Game Over
+        function gameOver() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            let winnerMsg = player.score >= winScore ? 
+                translations[currentLang].playerWins : 
+                translations[currentLang].computerWins;
+            winnerMsg = winnerMsg.replace('{0}', player.score).replace('{1}', computer.score);
+            showMessage(winnerMsg, true);
+        }
+        
+        // Show message
+        function showMessage(msg, showButtons = false) {
+            gameMessage.textContent = msg;
+            gameMessage.style.display = 'block';
+            if (showButtons) {
+                startButton.textContent = player.score >= winScore || computer.score >= winScore ? 
+                    translations[currentLang].newGame : translations[currentLang].startButton;
+                startButton.style.display = 'inline-block';
+                pauseButton.style.display = 'none';
+                resetButton.style.display = 'none';
+            } else {
+                startButton.style.display = 'none';
+                pauseButton.style.display = 'inline-block';
+                resetButton.style.display = 'inline-block';
+            }
+        }
+        
+        // Hide message
+        function hideMessage() {
+            gameMessage.style.display = 'none';
+        }
+        
+        // Countdown function
+        function doCountdown(callback) {
+            countdown.style.display = 'block';
+            countdown.textContent = '3';
+            
+            setTimeout(() => {
+                countdown.textContent = '2';
+                setTimeout(() => {
+                    countdown.textContent = '1';
+                    setTimeout(() => {
+                        countdown.textContent = 'GO!';
+                        setTimeout(() => {
+                            countdown.style.display = 'none';
+                            callback();
+                        }, 500);
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+        }
+        
+        // Start game
+        function startGame() {
+            if (!gameRunning) {
+                if (player.score >= winScore || computer.score >= winScore) {
+                    resetGame();
+                }
+                
+                hideMessage();
+                startButton.style.display = 'none';
+                pauseButton.style.display = 'inline-block';
+                resetButton.style.display = 'inline-block';
+                
+                // Start with countdown
+                doCountdown(() => {
+                    gameRunning = true;
+                    gamePaused = false;
+                    lastTime = Date.now();
+                    update();
+                });
+            } else if (gamePaused) {
+                togglePause();
+            }
+        }
+        
+        // Toggle pause
+        function togglePause() {
+            if (!gameRunning) return;
+            gamePaused = !gamePaused;
+            if (gamePaused) {
+                cancelAnimationFrame(animationId);
+                showMessage(translations[currentLang].pauseMessage, false);
+            } else {
+                hideMessage();
+                lastTime = Date.now();
+                update();
+            }
+        }
+        
+        // Reset game
+        function resetGame() {
+            gameRunning = false;
+            gamePaused = false;
+            cancelAnimationFrame(animationId);
+            player.score = 0;
+            computer.score = 0;
+            playerScoreDisplay.textContent = player.score;
+            computerScoreDisplay.textContent = computer.score;
+            balls.forEach(ball => resetBall(ball));
+            computer.difficulty = 0.1;
+            startButton.textContent = translations[currentLang].startButton;
+            startButton.style.display = 'inline-block';
+            pauseButton.style.display = 'none';
+            resetButton.style.display = 'none';
+            hideMessage();
+            
+            // Reset difficulty based on selection
+            if (difficultySelect.value === 'easy') {
+                computer.speed = 4;
+                winScore = 5;
+            } else if (difficultySelect.value === 'normal') {
+                computer.speed = 5;
+                winScore = 10;
+            } else if (difficultySelect.value === 'hard') {
+                computer.speed = 6;
+                winScore = 15;
+            }
+            
+            // Clear power-ups
+            powerUps = [];
+            
+            // Reset ball speeds
+            initialBallSpeedX = 6;
+            initialBallSpeedY = 6;
+            
+            // Reset paddles
+            player.y = canvas.height / 2 - player.height / 2;
+            computer.y = canvas.height / 2 - computer.height / 2;
+        }
+        
+        // Initialize game
+        function init() {
+            // Explicitly set game state
+            gameRunning = false;
+            gamePaused = false;
+            
+            // Resize canvas for mobile
+            function resizeCanvas() {
+                const container = document.querySelector('.game-container');
+                const containerWidth = container.clientWidth;
+                
+                if (containerWidth < canvas.width) {
+                    const aspectRatio = canvas.height / canvas.width;
+                    const newHeight = containerWidth * aspectRatio;
+                    
+                    canvas.style.width = containerWidth + 'px';
+                    canvas.style.height = newHeight + 'px';
+                } else {
+                    canvas.style.width = '';
+                    canvas.style.height = '';
+                }
+            }
+            
+            // Initial resize and listener
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Set initial scores
+            playerScoreDisplay.textContent = player.score;
+            computerScoreDisplay.textContent = computer.score;
+            
+            // Apply initial language
+            updateLanguage();
+            
+            // Set up initial button states
+            startButton.style.display = 'inline-block';
+            pauseButton.style.display = 'none';
+            resetButton.style.display = 'none';
+            
+            // Draw initial state without starting animation
+            balls.forEach(ball => resetBall(ball));
+            player.y = canvas.height / 2 - player.height / 2;
+            computer.y = canvas.height / 2 - computer.height / 2;
+            draw();
+            
+            // Update difficulty from selected option
+            if (difficultySelect.value === 'easy') {
+                computer.speed = 4;
+                winScore = 5;
+            } else if (difficultySelect.value === 'normal') {
+                computer.speed = 5;
+                winScore = 10;
+            } else if (difficultySelect.value === 'hard') {
+                computer.speed = 6;
+                winScore = 15;
+            }
+            
+            // Show start message - delayed to ensure it displays properly
+            setTimeout(() => {
+                showMessage(translations[currentLang].startMessage, true);
+            }, 100);
+        }
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
