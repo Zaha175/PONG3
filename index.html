@@ -43,9 +43,10 @@
             margin: 0;
             background-color: var(--background-color);
             font-family: 'Press Start 2P', Arial, sans-serif;
-            overflow: hidden;
+            overflow: auto; /* Changed from hidden to auto to allow scrolling */
             color: var(--text-color);
             transition: background-color 0.3s;
+            padding: 20px 0; /* Added padding to ensure content isn't flush against edges */
         }
         
         .game-wrapper {
@@ -55,6 +56,7 @@
             width: 100%;
             max-width: 1000px;
             padding: 10px;
+            margin-bottom: 50px; /* Added margin to ensure all content is visible */
         }
         
         canvas {
@@ -475,12 +477,12 @@
         
         // Computer properties
         const computer = {
-            x: canvas.width - 12,
+            x: 988, // Fixed position: canvas.width (1000) - width (12)
             y: canvas.height / 2 - 60,
             width: 12,
             height: 120,
             score: 0,
-            color: getComputedStyle(document.documentElement).getPropertyValue('--computer-color'),
+            color: '#FF4444', // Direct color value instead of CSS variable
             speed: 5,
             difficulty: 0.1,
         };
@@ -788,13 +790,15 @@
                     }
                 }
                 
-                // Collision with player
-                if (ball.x - ball.radius < player.x + player.width && 
-                    ball.y > player.y && 
-                    ball.y < player.y + player.height && 
+                // Collision with player - improved collision detection
+                if (ball.x - ball.radius <= player.x + player.width && 
+                    ball.x + ball.radius >= player.x && 
+                    ball.y + ball.radius >= player.y && 
+                    ball.y - ball.radius <= player.y + player.height && 
                     ball.speedX < 0) {
                     
                     ball.speedX = -ball.speedX * 1.03;
+                    ball.x = player.x + player.width + ball.radius; // Ensure ball doesn't get stuck in paddle
                     
                     // Calculate angle based on where the ball hits the paddle
                     const hitPosition = (ball.y - player.y) / player.height;
@@ -819,13 +823,15 @@
                     player.speed = 12;
                 }
                 
-                // Collision with computer
-                if (ball.x + ball.radius > computer.x && 
-                    ball.y > computer.y && 
-                    ball.y < computer.y + computer.height && 
+                // Collision with computer - improved collision detection
+                if (ball.x + ball.radius >= computer.x && 
+                    ball.x - ball.radius <= computer.x + computer.width && 
+                    ball.y + ball.radius >= computer.y && 
+                    ball.y - ball.radius <= computer.y + computer.height && 
                     ball.speedX > 0) {
                     
                     ball.speedX = -ball.speedX * 1.03;
+                    ball.x = computer.x - ball.radius; // Ensure ball doesn't get stuck in paddle
                     
                     // Calculate angle based on where the ball hits the paddle
                     const hitPosition = (ball.y - computer.y) / computer.height;
@@ -921,9 +927,24 @@
             ctx.setLineDash([5, 15]);
             ctx.moveTo(canvas.width / 2, 0);
             ctx.lineTo(canvas.width / 2, canvas.height);
-            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+            ctx.strokeStyle = '#5D5CDE';
             ctx.stroke();
             ctx.setLineDash([]);
+            
+            // Draw the paddles FIRST to ensure they're visible
+            // Draw player paddle
+            ctx.fillStyle = player.boosting ? '#FFFF00' : '#5D5CDE';
+            ctx.shadowColor = player.boosting ? '#FFFF00' : '#5D5CDE';
+            ctx.shadowBlur = player.boosting ? 10 : 5;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.shadowBlur = 0;
+            
+            // Draw computer paddle - explicitly set position and color
+            ctx.fillStyle = '#FF4444';
+            ctx.shadowColor = '#FF4444';
+            ctx.shadowBlur = 5;
+            ctx.fillRect(988, computer.y, computer.width, computer.height);
+            ctx.shadowBlur = 0;
             
             // Draw power-ups
             powerUps.forEach(powerUp => {
@@ -970,20 +991,6 @@
                 ctx.fill();
                 ctx.closePath();
             });
-            
-            // Draw player
-            ctx.fillStyle = player.boosting ? '#FFFF00' : player.color;
-            ctx.shadowColor = player.boosting ? '#FFFF00' : player.color;
-            ctx.shadowBlur = player.boosting ? 10 : 5;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-            ctx.shadowBlur = 0;
-            
-            // Draw computer
-            ctx.fillStyle = computer.color;
-            ctx.shadowColor = computer.color;
-            ctx.shadowBlur = 5;
-            ctx.fillRect(computer.x, computer.y, computer.width, computer.height);
-            ctx.shadowBlur = 0;
         }
         
         // Update game
@@ -1180,6 +1187,12 @@
             startButton.style.display = 'inline-block';
             pauseButton.style.display = 'none';
             resetButton.style.display = 'none';
+            
+            // Make sure the settings container is visible
+            document.querySelector('.settings-container').style.display = 'flex';
+            
+            // Make sure computer paddle appears at the right position
+            computer.x = canvas.width - computer.width;
             
             // Draw initial state without starting animation
             balls.forEach(ball => resetBall(ball));
