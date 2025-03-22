@@ -76,6 +76,19 @@
             text-align: center;
         }
         
+        #computerDebug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px;
+            font-size: 12px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: none;
+        }
+        
         .game-container {
             display: flex;
             flex-direction: column;
@@ -304,6 +317,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="computerDebug"></div>
     <div class="game-wrapper">
         <div class="game-container">
             <canvas id="pongCanvas" width="1000" height="500"></canvas>
@@ -876,35 +890,45 @@
             });
         }
         
-        // Move computer
+        // ULTRA SIMPLIFIED Computer AI - no fancy features, just works
         function moveComputer() {
-            const centerOfComputer = computer.y + computer.height / 2;
-            let targetY = balls.reduce((closestY, ball) => {
-                // Only track balls moving towards the computer
-                if (ball.speedX > 0) {
-                    const distanceToBall = Math.abs(ball.y - centerOfComputer);
-                    const currentClosestDistance = Math.abs(closestY - centerOfComputer);
-                    return distanceToBall < currentClosestDistance ? ball.y : closestY;
-                }
-                return closestY;
-            }, canvas.height / 2);
+            // Super simple computer movement - constant speed, no randomness
             
-            // Add some "AI difficulty" - how perfectly does the computer track
-            const difficultyFactor = difficultySelect.value === 'easy' ? 0.7 : 
-                                   difficultySelect.value === 'normal' ? 0.85 : 0.95;
+            // Target ball y-position - always use the first ball for simplicity
+            const ballY = balls[0].y;
             
-            // Move towards target with some imprecision
-            if (centerOfComputer < targetY - 10) {
-                computer.y += Math.min(computer.speed, (targetY - centerOfComputer) * difficultyFactor);
-            } else if (centerOfComputer > targetY + 10) {
-                computer.y -= Math.min(computer.speed, (centerOfComputer - targetY) * difficultyFactor);
+            // Computer paddle center
+            const paddleCenter = computer.y + computer.height / 2;
+            
+            // FIXED speed - very high to ensure smooth movement
+            const FIXED_SPEED = 15;
+            
+            // Add a buffer to prevent jitter - only move if ball is outside this range
+            const BUFFER = 20;
+            
+            // Simple movement without any randomness or complex logic
+            if (paddleCenter < ballY - BUFFER) {
+                // Ball is below paddle - move down
+                computer.y += FIXED_SPEED;
+            } else if (paddleCenter > ballY + BUFFER) {
+                // Ball is above paddle - move up
+                computer.y -= FIXED_SPEED;
             }
+            // Else: ball is within buffer zone - don't move to avoid jitter
             
+            // Ensure paddle stays within bounds
             computer.y = Math.max(0, Math.min(canvas.height - computer.height, computer.y));
             
-            // Computer gets slightly better over time
-            if (difficultySelect.value !== 'easy') {
-                computer.speed += 0.0003;
+            // Update debug display with stable, rounded numbers
+            if (gameRunning) {
+                const debugElement = document.getElementById('computerDebug');
+                if (debugElement) {
+                    // Limit update frequency to avoid flicker
+                    if (Math.random() < 0.05) { // Only update ~5% of frames
+                        debugElement.textContent = `Paddle: ${Math.round(paddleCenter)}, Ball: ${Math.round(ballY)}`;
+                        debugElement.style.display = 'block';
+                    }
+                }
             }
         }
         
@@ -939,11 +963,11 @@
             ctx.fillRect(player.x, player.y, player.width, player.height);
             ctx.shadowBlur = 0;
             
-            // Draw computer paddle - explicitly set position and color
+            // Draw computer paddle - use computer object's position variables
             ctx.fillStyle = '#FF4444';
             ctx.shadowColor = '#FF4444';
             ctx.shadowBlur = 5;
-            ctx.fillRect(988, computer.y, computer.width, computer.height);
+            ctx.fillRect(computer.x, computer.y, computer.width, computer.height);
             ctx.shadowBlur = 0;
             
             // Draw power-ups
